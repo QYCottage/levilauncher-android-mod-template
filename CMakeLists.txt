@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.22)
 
 project(levilauncher_android_mod_template LANGUAGES CXX)
 
+if(POLICY CMP0169)
+    cmake_policy(SET CMP0169 OLD)
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -15,20 +19,29 @@ set(MOD_LIBRARY_NAME "my_mod" CACHE STRING "Native library name without lib pref
 set(MOD_MINECRAFT_VERSIONS "[\"1.21.*\"]" CACHE STRING "Raw JSON array for manifest minecraft_versions")
 set(MOD_ICON "" CACHE STRING "Optional package-relative icon path, such as icon.png")
 
-set(DEFAULT_LEVI_PRELOADER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/third_party/preloader-android")
-if(NOT DEFINED LEVI_PRELOADER_ROOT AND DEFINED ENV{LEVI_PRELOADER_ROOT} AND NOT "$ENV{LEVI_PRELOADER_ROOT}" STREQUAL "")
-    set(DEFAULT_LEVI_PRELOADER_ROOT "$ENV{LEVI_PRELOADER_ROOT}")
+include(FetchContent)
+set(LEVI_PRELOADER_ROOT "" CACHE PATH "Optional path to a local preloader-android checkout")
+if(LEVI_PRELOADER_ROOT STREQUAL "" AND DEFINED ENV{LEVI_PRELOADER_ROOT} AND NOT "$ENV{LEVI_PRELOADER_ROOT}" STREQUAL "")
+    set(LEVI_PRELOADER_ROOT "$ENV{LEVI_PRELOADER_ROOT}")
 endif()
-set(LEVI_PRELOADER_ROOT "${DEFAULT_LEVI_PRELOADER_ROOT}" CACHE PATH "Path to LeviLaunchroid preloader root")
+
+if(LEVI_PRELOADER_ROOT STREQUAL "")
+    FetchContent_Declare(
+        preloader_android
+        GIT_REPOSITORY https://github.com/LiteLDev/preloader-android.git
+        GIT_TAG main
+    )
+    FetchContent_GetProperties(preloader_android)
+    if(NOT preloader_android_POPULATED)
+        FetchContent_Populate(preloader_android)
+    endif()
+    set(LEVI_PRELOADER_ROOT "${preloader_android_SOURCE_DIR}")
+endif()
 
 if(NOT EXISTS "${LEVI_PRELOADER_ROOT}/src/pl/cpp/Mod.hpp")
-    message(FATAL_ERROR
-        "LEVI_PRELOADER_ROOT must point to a preloader-android checkout. "
-        "Clone https://github.com/LiteLDev/preloader-android to "
-        "third_party/preloader-android or pass -DLEVI_PRELOADER_ROOT=<path>.")
+    message(FATAL_ERROR "LEVI_PRELOADER_ROOT must point to a preloader-android checkout: ${LEVI_PRELOADER_ROOT}")
 endif()
 
-include(FetchContent)
 FetchContent_Declare(
     nlohmann_json
     GIT_REPOSITORY https://github.com/nlohmann/json.git

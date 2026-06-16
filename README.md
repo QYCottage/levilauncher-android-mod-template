@@ -27,21 +27,13 @@ typed config generation, and GitHub Actions workflow.
 - CMake 3.22+
 - Ninja
 - PowerShell 7+, or Windows PowerShell
-- preloader-android headers from
-  <https://github.com/LiteLDev/preloader-android>
 
-By default, the template looks for preloader-android at:
+The CMake project fetches preloader-android from
+<https://github.com/LiteLDev/preloader-android> automatically.
 
-```text
-third_party/preloader-android
-```
-
-Clone it there, or set `LEVI_PRELOADER_ROOT` / `-DLEVI_PRELOADER_ROOT` to an
-existing checkout:
-
-```powershell
-git clone https://github.com/LiteLDev/preloader-android third_party/preloader-android
-```
+Set `LEVI_PRELOADER_ROOT`, pass `-DLEVI_PRELOADER_ROOT=<path>`, or use
+`scripts/package.ps1 -PreloaderRoot <path>` only when you want to use a local
+preloader-android checkout.
 
 ## Build
 
@@ -70,7 +62,6 @@ cmake -S . -B build-arm64-v8a `
   -DANDROID_ABI=arm64-v8a `
   -DANDROID_PLATFORM=android-28 `
   -DANDROID_STL=c++_shared `
-  -DLEVI_PRELOADER_ROOT="third_party/preloader-android" `
   -DMOD_ID=my-mod `
   -DMOD_NAME="My Mod" `
   -DMOD_AUTHOR="LiteLDev" `

@@ -13,19 +13,15 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptDir "..")
 
-if ([string]::IsNullOrWhiteSpace($PreloaderRoot)) {
-    $PreloaderRoot = Join-Path $repoRoot "third_party/preloader-android"
-}
-
-if (-not (Test-Path (Join-Path $PreloaderRoot "src/pl/cpp/Mod.hpp"))) {
-    throw "PreloaderRoot must point to a preloader-android checkout. Clone https://github.com/LiteLDev/preloader-android to third_party/preloader-android, set LEVI_PRELOADER_ROOT, or pass -PreloaderRoot. Current value: $PreloaderRoot"
-}
-
 function Invoke-ConfigGeneration {
     $configBuildDir = Join-Path $repoRoot "$BuildRoot-config"
+    $preloaderArgs = @()
+    if (-not [string]::IsNullOrWhiteSpace($PreloaderRoot)) {
+        $preloaderArgs += "-DLEVI_PRELOADER_ROOT=$PreloaderRoot"
+    }
 
     & cmake -S $repoRoot -B $configBuildDir -G $Generator `
-        -DLEVI_PRELOADER_ROOT="$PreloaderRoot" 2>&1 |
+        @preloaderArgs 2>&1 |
         ForEach-Object { Write-Host $_ }
 
     & cmake --build $configBuildDir --target levi_generate_config 2>&1 |
@@ -70,13 +66,17 @@ function Invoke-ModBuild {
     $toolchain = Join-Path $ndkHome "build/cmake/android.toolchain.cmake"
     $buildDir = Join-Path $repoRoot "$BuildRoot-$TargetAbi"
     $generatedConfigDir = Invoke-ConfigGeneration
+    $preloaderArgs = @()
+    if (-not [string]::IsNullOrWhiteSpace($PreloaderRoot)) {
+        $preloaderArgs += "-DLEVI_PRELOADER_ROOT=$PreloaderRoot"
+    }
 
     cmake -S $repoRoot -B $buildDir -G $Generator `
         -DCMAKE_TOOLCHAIN_FILE="$toolchain" `
         -DANDROID_ABI="$TargetAbi" `
         -DANDROID_PLATFORM="$AndroidPlatform" `
         -DANDROID_STL="c++_shared" `
-        -DLEVI_PRELOADER_ROOT="$PreloaderRoot" `
+        @preloaderArgs `
         -DLEVI_PACKAGE_CONFIG_DIR="$generatedConfigDir"
 
     cmake --build $buildDir --target levi_package

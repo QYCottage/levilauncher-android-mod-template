@@ -1,4 +1,4 @@
-#include "mod/MyMod.h"
+#include "mod/Config.h"
 
 namespace clange_me {
 

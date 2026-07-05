@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.22)
 
 project(levilauncher_android_mod_template LANGUAGES CXX)
 
-if(POLICY CMP0169)
-    cmake_policy(SET CMP0169 OLD)
-endif()
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -16,34 +12,17 @@ set(MOD_NAME "Clange Me Mod" CACHE STRING "LeviLauncher mod display name")
 set(MOD_AUTHOR "clange_me" CACHE STRING "LeviLauncher mod author")
 set(MOD_VERSION "0.1.0" CACHE STRING "LeviLauncher mod version")
 set(MOD_LIBRARY_NAME "clange_me" CACHE STRING "Native library name without lib prefix or .so suffix")
-set(MOD_MINECRAFT_VERSIONS "[\"1.21.*\"]" CACHE STRING "Raw JSON array for manifest minecraft_versions")
+set(MOD_MINECRAFT_VERSIONS "[\"1.26.*\"]" CACHE STRING "Raw JSON array for manifest minecraft_versions")
 set(MOD_ICON "" CACHE STRING "Optional package-relative icon path, such as icon.png")
 
 include(FetchContent)
-set(LEVI_PRELOADER_ROOT "" CACHE PATH "Optional path to a local preloader-android checkout")
-set(LEVI_PRELOADER_GIT_TAG "0.2.0" CACHE STRING
-    "LiteLDev/preloader-android tag or commit to fetch")
-if(LEVI_PRELOADER_ROOT STREQUAL "" AND DEFINED ENV{LEVI_PRELOADER_ROOT} AND NOT "$ENV{LEVI_PRELOADER_ROOT}" STREQUAL "")
-    set(LEVI_PRELOADER_ROOT "$ENV{LEVI_PRELOADER_ROOT}")
-endif()
 
-if(LEVI_PRELOADER_ROOT STREQUAL "")
-    FetchContent_Declare(
-        preloader_android
-        GIT_REPOSITORY https://github.com/LiteLDev/preloader-android.git
-        GIT_TAG ${LEVI_PRELOADER_GIT_TAG}
-    )
-    FetchContent_GetProperties(preloader_android)
-    if(NOT preloader_android_POPULATED)
-        FetchContent_Populate(preloader_android)
-    endif()
-    set(LEVI_PRELOADER_ROOT "${preloader_android_SOURCE_DIR}")
-endif()
-
-if(NOT EXISTS "${LEVI_PRELOADER_ROOT}/include/pl/Mod.hpp")
-    message(FATAL_ERROR "LEVI_PRELOADER_ROOT must point to a preloader-android checkout: ${LEVI_PRELOADER_ROOT}")
-endif()
-
+FetchContent_Declare(
+    preloader_android
+    GIT_REPOSITORY https://github.com/LiteLDev/preloader-android.git
+    GIT_TAG f45fc425da769a1ec692dd52bf90039259477a26
+    SOURCE_SUBDIR cmake/preloader-sdk
+)
 FetchContent_Declare(
     nlohmann_json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
@@ -59,7 +38,18 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
     GIT_TAG v0.9.7
 )
-FetchContent_MakeAvailable(nlohmann_json boost_pfr magic_enum)
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG 11.2.0
+)
+set(FMT_DOC OFF CACHE BOOL "Disable fmt docs" FORCE)
+set(FMT_TEST OFF CACHE BOOL "Disable fmt tests" FORCE)
+set(FMT_INSTALL OFF CACHE BOOL "Disable fmt install rules" FORCE)
+FetchContent_MakeAvailable(preloader_android nlohmann_json boost_pfr magic_enum fmt)
+
+FetchContent_GetProperties(preloader_android)
+set(LEVI_PRELOADER_INCLUDE_DIR "${preloader_android_SOURCE_DIR}/include")
 
 if(NOT ANDROID)
     set(LEVI_GENERATED_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated-config")
@@ -72,7 +62,7 @@ if(NOT ANDROID)
     target_include_directories(levi_config_generator
         PRIVATE
             src
-            "${LEVI_PRELOADER_ROOT}/include"
+            "${LEVI_PRELOADER_INCLUDE_DIR}"
     )
 
     target_compile_definitions(levi_config_generator PRIVATE PL_CONFIG_NO_RUNTIME)
@@ -123,7 +113,7 @@ option(LEVI_LINK_PRELOADER
        ON)
 
 if(LEVI_LINK_PRELOADER AND NOT TARGET preloader)
-    add_subdirectory("${LEVI_PRELOADER_ROOT}" "${CMAKE_BINARY_DIR}/_preloader_android")
+    add_subdirectory("${preloader_android_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/_preloader_android")
 endif()
 
 add_library(${MOD_LIBRARY_NAME} SHARED
@@ -139,7 +129,7 @@ set_target_properties(${MOD_LIBRARY_NAME} PROPERTIES
 target_include_directories(${MOD_LIBRARY_NAME}
     PRIVATE
         src
-        "${LEVI_PRELOADER_ROOT}/include"
+        "${LEVI_PRELOADER_INCLUDE_DIR}"
 )
 
 target_compile_options(${MOD_LIBRARY_NAME}
@@ -158,6 +148,7 @@ target_link_libraries(${MOD_LIBRARY_NAME} PRIVATE
     nlohmann_json::nlohmann_json
     Boost::pfr
     magic_enum::magic_enum
+    fmt::fmt
 )
 
 if(TARGET preloader)

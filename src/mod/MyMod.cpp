@@ -11,55 +11,58 @@ ClangeMeMod &ClangeMeMod::instance() {
     return instance;
 }
 
-bool ClangeMeMod::load(pl::mod::ModContext &context) {
-    context.logger().debug("Loading...");
+ClangeMeMod::ClangeMeMod() : mSelf(*ll::mod::NativeMod::current()) {}
+
+bool ClangeMeMod::load() {
+    auto &self = getSelf();
+    self.getLogger().debug("Loading...");
 
     std::error_code ec;
-    std::filesystem::create_directories(context.dataDir(), ec);
+    std::filesystem::create_directories(self.getDataDir(), ec);
     if (ec) {
-        context.logger().error("Failed to create data directory {}: {}", context.dataDir().string(),
+        self.getLogger().error("Failed to create data directory {}: {}", self.getDataDir().string(),
                                ec.message());
         return false;
     }
 
-    std::filesystem::create_directories(context.configDir(), ec);
+    std::filesystem::create_directories(self.getConfigDir(), ec);
     if (ec) {
-        context.logger().error("Failed to create config directory {}: {}",
-                               context.configDir().string(), ec.message());
+        self.getLogger().error("Failed to create config directory {}: {}",
+                               self.getConfigDir().string(), ec.message());
         return false;
     }
 
-    mConfigFile.emplace(ModConfig{}, context.configDir() / "config.json",
-                        context.configDir() / "config.schema.json");
+    mConfigFile.emplace();
     if (!mConfigFile->load()) {
-        context.logger().warn("Failed to load typed config");
+        self.getLogger().warn("Failed to load typed config");
         return false;
     }
     mConfig = mConfigFile->value();
 
-    context.logger().info("Loaded {} from {}", context.name(), context.modRootPath().string());
+    self.getLogger().info("Loaded {} from {}", self.getName(), self.getModDir().string());
     return true;
 }
 
-bool ClangeMeMod::enable(pl::mod::ModContext &context) {
-    context.logger().debug("Enabling...");
+bool ClangeMeMod::enable() {
+    auto &self = getSelf();
+    self.getLogger().debug("Enabling...");
     if (!mConfig.enabled) {
-        context.logger().info("clange_me is disabled by config");
+        self.getLogger().info("clange_me is disabled by config");
         return true;
     }
 
-    context.logger().info("Config message: {}", mConfig.message);
+    self.getLogger().info("Config message: {}", mConfig.message);
     return true;
 }
 
-bool ClangeMeMod::disable(pl::mod::ModContext &context) {
-    context.logger().debug("Disabling...");
+bool ClangeMeMod::disable() {
+    getSelf().getLogger().debug("Disabling...");
     // Undo enable-time state here.
     return true;
 }
 
-bool ClangeMeMod::unload(pl::mod::ModContext &context) {
-    context.logger().debug("Unloading...");
+bool ClangeMeMod::unload() {
+    getSelf().getLogger().debug("Unloading...");
     // Release load-time resources here.
     mConfigFile.reset();
     return true;

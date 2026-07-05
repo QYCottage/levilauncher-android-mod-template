@@ -15,6 +15,7 @@ typed config generation, and GitHub Actions workflow.
     ├── config_generator.cpp
     ├── main.cpp
     └── mod
+        ├── Config.h
         ├── Config.cpp
         ├── MyMod.cpp
         └── MyMod.h
@@ -28,15 +29,25 @@ typed config generation, and GitHub Actions workflow.
 - Ninja
 - PowerShell 7+, or Windows PowerShell
 
-The CMake project fetches preloader-android from
+The CMake project fetches a pinned preloader-android commit from
 <https://github.com/LiteLDev/preloader-android> automatically.
 
-Set `LEVI_PRELOADER_ROOT`, pass `-DLEVI_PRELOADER_ROOT=<path>`, or use
-`scripts/package.ps1 -PreloaderRoot <path>` only when you want to use a local
-preloader-android checkout.
+## Supported SDK Surface
 
-By default this template pins `LEVI_PRELOADER_GIT_TAG` to release `0.2.0`.
-Move that value only after your mod has tested against the newer SDK release.
+Use only public headers from the SDK `include` directory:
+
+```cpp
+#include <pl/Mod.hpp>
+#include <pl/Config.hpp>
+#include <pl/ModMenu.hpp>
+#include <pl/Input.hpp>
+#include <pl/memory/Hook.hpp>
+#include <pl/memory/Patch.hpp>
+#include <pl/memory/Signature.hpp>
+```
+
+Do not add preloader `src` directories to your include path. This template uses
+the current C++ API with `PL_REGISTER_MOD`.
 
 ## Build
 
@@ -81,26 +92,33 @@ cmake --build build-arm64-v8a --target levi_package
 Write your mod logic in [src/mod/MyMod.cpp](src/mod/MyMod.cpp):
 
 ```cpp
-bool ClangeMeMod::load(pl::mod::ModContext &context) {
-    context.logger().debug("Loading...");
+ClangeMeMod::ClangeMeMod() : mSelf(*ll::mod::NativeMod::current()) {}
+
+bool ClangeMeMod::load() {
+    getSelf().getLogger().debug("Loading...");
     return true;
 }
 
-bool ClangeMeMod::enable(pl::mod::ModContext &context) {
-    context.logger().debug("Enabling...");
+bool ClangeMeMod::enable() {
+    getSelf().getLogger().debug("Enabling...");
     return true;
 }
 
-bool ClangeMeMod::disable(pl::mod::ModContext &context) {
-    context.logger().debug("Disabling...");
+bool ClangeMeMod::disable() {
+    getSelf().getLogger().debug("Disabling...");
     return true;
 }
 
-bool ClangeMeMod::unload(pl::mod::ModContext &context) {
-    context.logger().debug("Unloading...");
+bool ClangeMeMod::unload() {
+    getSelf().getLogger().debug("Unloading...");
     return true;
 }
 ```
+
+`ll::mod::NativeMod::current()` is available while the mod instance is being
+registered, so the constructor can keep the loader-provided `mSelf` reference.
+`PL_REGISTER_MOD` exports `PLGetModRegistration`, which is the entry point the
+preloader looks up for current C++ lifecycle mods.
 
 Lifecycle meaning:
 
@@ -111,21 +129,20 @@ Lifecycle meaning:
 
 Common APIs:
 
-- `context.logger()`
-- `context.id()`
-- `context.name()`
-- `context.modRootPath()`
-- `context.dataDir()`
-- `context.configDir()`
-- `context.resourceDir()`
-- `context.javaVm()`
+- `getSelf().getLogger()`
+- `getSelf().getId()`
+- `getSelf().getName()`
+- `getSelf().getModDir()`
+- `getSelf().getDataDir()`
+- `getSelf().getConfigDir()`
+- `getSelf().getResourceDir()`
 
-Use `context.dataDir()` and `context.configDir()` for your mod's own data and config
+Use `getSelf().getDataDir()` and `getSelf().getConfigDir()` for your mod's own data and config
 files.
 
 ## Typed Config
 
-The template includes a minimal typed config in `src/mod/MyMod.h`:
+The template includes a minimal typed config in `src/mod/Config.h`:
 
 ```cpp
 struct ModConfig {

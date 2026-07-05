@@ -29,7 +29,7 @@ typed config generation, and GitHub Actions workflow.
 - Ninja
 - PowerShell 7+, or Windows PowerShell
 
-The CMake project fetches a pinned preloader-android commit from
+The CMake project fetches preloader-android release `0.2.1` from
 <https://github.com/LiteLDev/preloader-android> automatically.
 
 ## Supported SDK Surface
@@ -117,8 +117,7 @@ bool ClangeMeMod::unload() {
 
 `ll::mod::NativeMod::current()` is available while the mod instance is being
 registered, so the constructor can keep the loader-provided `mSelf` reference.
-`PL_REGISTER_MOD` exports `PLGetModRegistration`, which is the entry point the
-preloader looks up for current C++ lifecycle mods.
+Register one long-lived mod object with `PL_REGISTER_MOD`.
 
 Lifecycle meaning:
 

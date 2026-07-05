@@ -2,71 +2,67 @@
 
 #include <filesystem>
 
-#include "pl/cpp/Config.hpp"
-#include "pl/cpp/Mod.hpp"
+#include <pl/Mod.hpp>
 
-namespace my_mod {
+namespace clange_me {
 
-MyMod &MyMod::getInstance() {
-    static MyMod instance;
+ClangeMeMod &ClangeMeMod::instance() {
+    static ClangeMeMod instance;
     return instance;
 }
 
-pl::mod::NativeMod &MyMod::getSelf() const {
-    return *pl::mod::NativeMod::current();
-}
-
-bool MyMod::load() {
-    auto &self = getSelf();
-    self.getLogger().debug("Loading...");
+bool ClangeMeMod::load(pl::mod::ModContext &context) {
+    context.logger().debug("Loading...");
 
     std::error_code ec;
-    std::filesystem::create_directories(self.getDataDir(), ec);
+    std::filesystem::create_directories(context.dataDir(), ec);
     if (ec) {
-        self.getLogger().error("Failed to create data directory {}: {}", self.getDataDir().string(),
+        context.logger().error("Failed to create data directory {}: {}", context.dataDir().string(),
                                ec.message());
         return false;
     }
 
-    std::filesystem::create_directories(self.getConfigDir(), ec);
+    std::filesystem::create_directories(context.configDir(), ec);
     if (ec) {
-        self.getLogger().error("Failed to create config directory {}: {}",
-                               self.getConfigDir().string(), ec.message());
+        context.logger().error("Failed to create config directory {}: {}",
+                               context.configDir().string(), ec.message());
         return false;
     }
 
-    pl::config::ConfigFile<ModConfig> configFile;
-    if (!configFile.load()) {
-        self.getLogger().warn("Failed to load typed config");
+    mConfigFile.emplace(ModConfig{}, context.configDir() / "config.json",
+                        context.configDir() / "config.schema.json");
+    if (!mConfigFile->load()) {
+        context.logger().warn("Failed to load typed config");
         return false;
     }
-    config = configFile.value();
+    mConfig = mConfigFile->value();
 
-    self.getLogger().info("Loaded {} from {}", self.getName(), self.getModDir().string());
+    context.logger().info("Loaded {} from {}", context.name(), context.modRootPath().string());
     return true;
 }
 
-bool MyMod::enable() {
-    getSelf().getLogger().debug("Enabling...");
-    if (!config.enabled) {
-        getSelf().getLogger().info("Test mod is disabled by config");
+bool ClangeMeMod::enable(pl::mod::ModContext &context) {
+    context.logger().debug("Enabling...");
+    if (!mConfig.enabled) {
+        context.logger().info("clange_me is disabled by config");
         return true;
     }
 
-    getSelf().getLogger().info("Config message: {}", config.message);
+    context.logger().info("Config message: {}", mConfig.message);
     return true;
 }
 
-bool MyMod::disable() {
-    getSelf().getLogger().debug("Disabling...");
+bool ClangeMeMod::disable(pl::mod::ModContext &context) {
+    context.logger().debug("Disabling...");
     // Undo enable-time state here.
     return true;
 }
 
-bool MyMod::unload() {
-    getSelf().getLogger().debug("Unloading...");
+bool ClangeMeMod::unload(pl::mod::ModContext &context) {
+    context.logger().debug("Unloading...");
     // Release load-time resources here.
+    mConfigFile.reset();
     return true;
 }
 
-} // namespace my_mod
+} // namespace clange_me

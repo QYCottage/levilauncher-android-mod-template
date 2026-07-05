@@ -1,5 +1,5 @@
 #include "mod/MyMod.h"
 
-#include "pl/cpp/mod/RegisterHelper.hpp"
+#include <pl/Mod.hpp>
 
-PL_REGISTER_MOD(my_mod::MyMod, my_mod::MyMod::getInstance());
+PL_REGISTER_MOD(clange_me::ClangeMeMod, clange_me::ClangeMeMod::instance());

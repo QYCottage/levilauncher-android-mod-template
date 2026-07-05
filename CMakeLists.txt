@@ -11,16 +11,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(MOD_ID "my-mod" CACHE STRING "LeviLauncher mod package directory name")
-set(MOD_NAME "My Mod" CACHE STRING "LeviLauncher mod display name")
-set(MOD_AUTHOR "LiteLDev" CACHE STRING "LeviLauncher mod author")
+set(MOD_ID "clange_me" CACHE STRING "LeviLauncher mod package directory name")
+set(MOD_NAME "Clange Me Mod" CACHE STRING "LeviLauncher mod display name")
+set(MOD_AUTHOR "clange_me" CACHE STRING "LeviLauncher mod author")
 set(MOD_VERSION "0.1.0" CACHE STRING "LeviLauncher mod version")
-set(MOD_LIBRARY_NAME "my_mod" CACHE STRING "Native library name without lib prefix or .so suffix")
+set(MOD_LIBRARY_NAME "clange_me" CACHE STRING "Native library name without lib prefix or .so suffix")
 set(MOD_MINECRAFT_VERSIONS "[\"1.21.*\"]" CACHE STRING "Raw JSON array for manifest minecraft_versions")
 set(MOD_ICON "" CACHE STRING "Optional package-relative icon path, such as icon.png")
 
 include(FetchContent)
 set(LEVI_PRELOADER_ROOT "" CACHE PATH "Optional path to a local preloader-android checkout")
+set(LEVI_PRELOADER_GIT_TAG "0.2.0" CACHE STRING
+    "LiteLDev/preloader-android tag or commit to fetch")
 if(LEVI_PRELOADER_ROOT STREQUAL "" AND DEFINED ENV{LEVI_PRELOADER_ROOT} AND NOT "$ENV{LEVI_PRELOADER_ROOT}" STREQUAL "")
     set(LEVI_PRELOADER_ROOT "$ENV{LEVI_PRELOADER_ROOT}")
 endif()
@@ -29,7 +31,7 @@ if(LEVI_PRELOADER_ROOT STREQUAL "")
     FetchContent_Declare(
         preloader_android
         GIT_REPOSITORY https://github.com/LiteLDev/preloader-android.git
-        GIT_TAG main
+        GIT_TAG ${LEVI_PRELOADER_GIT_TAG}
     )
     FetchContent_GetProperties(preloader_android)
     if(NOT preloader_android_POPULATED)
@@ -38,7 +40,7 @@ if(LEVI_PRELOADER_ROOT STREQUAL "")
     set(LEVI_PRELOADER_ROOT "${preloader_android_SOURCE_DIR}")
 endif()
 
-if(NOT EXISTS "${LEVI_PRELOADER_ROOT}/src/pl/cpp/Mod.hpp")
+if(NOT EXISTS "${LEVI_PRELOADER_ROOT}/include/pl/Mod.hpp")
     message(FATAL_ERROR "LEVI_PRELOADER_ROOT must point to a preloader-android checkout: ${LEVI_PRELOADER_ROOT}")
 endif()
 
@@ -70,7 +72,7 @@ if(NOT ANDROID)
     target_include_directories(levi_config_generator
         PRIVATE
             src
-            "${LEVI_PRELOADER_ROOT}/src"
+            "${LEVI_PRELOADER_ROOT}/include"
     )
 
     target_compile_definitions(levi_config_generator PRIVATE PL_CONFIG_NO_RUNTIME)
@@ -116,6 +118,14 @@ if(NOT CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" AND
     message(FATAL_ERROR "Unsupported Android ABI: ${CMAKE_ANDROID_ARCH_ABI}")
 endif()
 
+option(LEVI_LINK_PRELOADER
+       "Build and link the preloader target instead of leaving SDK symbols for runtime lookup"
+       ON)
+
+if(LEVI_LINK_PRELOADER AND NOT TARGET preloader)
+    add_subdirectory("${LEVI_PRELOADER_ROOT}" "${CMAKE_BINARY_DIR}/_preloader_android")
+endif()
+
 add_library(${MOD_LIBRARY_NAME} SHARED
     src/main.cpp
     src/mod/Config.cpp
@@ -129,7 +139,7 @@ set_target_properties(${MOD_LIBRARY_NAME} PROPERTIES
 target_include_directories(${MOD_LIBRARY_NAME}
     PRIVATE
         src
-        "${LEVI_PRELOADER_ROOT}/src"
+        "${LEVI_PRELOADER_ROOT}/include"
 )
 
 target_compile_options(${MOD_LIBRARY_NAME}
@@ -149,6 +159,13 @@ target_link_libraries(${MOD_LIBRARY_NAME} PRIVATE
     Boost::pfr
     magic_enum::magic_enum
 )
+
+if(TARGET preloader)
+    target_link_libraries(${MOD_LIBRARY_NAME} PRIVATE preloader)
+else()
+    target_link_options(${MOD_LIBRARY_NAME} PRIVATE
+        "-Wl,--unresolved-symbols=ignore-all")
+endif()
 
 if(NOT CMAKE_STRIP)
     message(FATAL_ERROR "CMAKE_STRIP is required to strip the generated library.")

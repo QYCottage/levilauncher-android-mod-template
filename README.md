@@ -1,7 +1,7 @@
 # LeviLauncher Android Mod Template
 
 This is a CMake template for LeviLauncher Android native mods. It includes a
-ready-to-use `manifest.json`, CMake project, minimal `MyMod`, packaging script,
+ready-to-use `manifest.json`, CMake project, minimal `ClangeMeMod`, packaging script,
 typed config generation, and GitHub Actions workflow.
 
 ## Project Layout
@@ -35,6 +35,9 @@ Set `LEVI_PRELOADER_ROOT`, pass `-DLEVI_PRELOADER_ROOT=<path>`, or use
 `scripts/package.ps1 -PreloaderRoot <path>` only when you want to use a local
 preloader-android checkout.
 
+By default this template pins `LEVI_PRELOADER_GIT_TAG` to release `0.2.0`.
+Move that value only after your mod has tested against the newer SDK release.
+
 ## Build
 
 ```powershell
@@ -62,39 +65,39 @@ cmake -S . -B build-arm64-v8a `
   -DANDROID_ABI=arm64-v8a `
   -DANDROID_PLATFORM=android-28 `
   -DANDROID_STL=c++_shared `
-  -DMOD_ID=my-mod `
-  -DMOD_NAME="My Mod" `
-  -DMOD_AUTHOR="LiteLDev" `
+  -DMOD_ID=clange_me `
+  -DMOD_NAME="Clange Me Mod" `
+  -DMOD_AUTHOR="clange_me" `
   -DMOD_VERSION=0.1.0 `
-  -DMOD_LIBRARY_NAME=my_mod `
+  -DMOD_LIBRARY_NAME=clange_me `
   -DMOD_MINECRAFT_VERSIONS='["1.21.*"]' `
   "-DMOD_ICON="
 
 cmake --build build-arm64-v8a --target levi_package
 ```
 
-## MyMod Lifecycle
+## Lifecycle
 
 Write your mod logic in [src/mod/MyMod.cpp](src/mod/MyMod.cpp):
 
 ```cpp
-bool MyMod::load() {
-    getSelf().getLogger().debug("Loading...");
+bool ClangeMeMod::load(pl::mod::ModContext &context) {
+    context.logger().debug("Loading...");
     return true;
 }
 
-bool MyMod::enable() {
-    getSelf().getLogger().debug("Enabling...");
+bool ClangeMeMod::enable(pl::mod::ModContext &context) {
+    context.logger().debug("Enabling...");
     return true;
 }
 
-bool MyMod::disable() {
-    getSelf().getLogger().debug("Disabling...");
+bool ClangeMeMod::disable(pl::mod::ModContext &context) {
+    context.logger().debug("Disabling...");
     return true;
 }
 
-bool MyMod::unload() {
-    getSelf().getLogger().debug("Unloading...");
+bool ClangeMeMod::unload(pl::mod::ModContext &context) {
+    context.logger().debug("Unloading...");
     return true;
 }
 ```
@@ -108,18 +111,16 @@ Lifecycle meaning:
 
 Common APIs:
 
-- `getLogger()`
-- `getId()`
-- `getName()`
-- `getModDir()`
-- `getDataDir()`
-- `getConfigDir()`
-- `getResourceDir()`
-- `getManifestPath()`
-- `getLibraryPath()`
-- `getJavaVM()`
+- `context.logger()`
+- `context.id()`
+- `context.name()`
+- `context.modRootPath()`
+- `context.dataDir()`
+- `context.configDir()`
+- `context.resourceDir()`
+- `context.javaVm()`
 
-Use `getDataDir()` and `getConfigDir()` for your mod's own data and config
+Use `context.dataDir()` and `context.configDir()` for your mod's own data and config
 files.
 
 ## Typed Config
@@ -130,11 +131,11 @@ The template includes a minimal typed config in `src/mod/MyMod.h`:
 struct ModConfig {
     int version = 1;
     bool enabled = true;
-    std::string message = "Hello from My Mod";
+    std::string message = "Hello from clange_me";
 };
 ```
 
-`MyMod::load()` uses `pl::config::ConfigFile<ModConfig>` to create and update
+`ClangeMeMod::load()` uses `pl::config::ConfigFile<ModConfig>` to create and update
 `config/config.json`. The package script runs `src/config_generator.cpp` before
 Android compilation and includes generated `config.json` and
 `config.schema.json` in the `.levipack`.

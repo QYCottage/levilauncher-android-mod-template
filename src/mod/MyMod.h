@@ -1,50 +1,50 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
-#include "pl/cpp/Config.hpp"
+#include <pl/Config.hpp>
 
 namespace pl::mod {
-class NativeMod;
+class ModContext;
 }
 
-namespace my_mod {
+namespace clange_me {
 
 struct ModConfig {
     int version = 1;
     bool enabled = true;
-    std::string message = "Hello from My Mod";
+    std::string message = "Hello from clange_me";
 };
 
 nlohmann::json makeDefaultConfigJson();
 nlohmann::json makeConfigSchemaJson();
 
-class MyMod {
+class ClangeMeMod {
   public:
-    static MyMod &getInstance();
+    static ClangeMeMod &instance();
 
-    [[nodiscard]] pl::mod::NativeMod &getSelf() const;
-
-    bool load();
-    bool enable();
-    bool disable();
-    bool unload();
+    bool load(pl::mod::ModContext &context);
+    bool enable(pl::mod::ModContext &context);
+    bool disable(pl::mod::ModContext &context);
+    bool unload(pl::mod::ModContext &context);
 
   private:
-    ModConfig config;
+    ModConfig mConfig;
+    std::optional<pl::config::ConfigFile<ModConfig>> mConfigFile;
 };
 
-} // namespace my_mod
+} // namespace clange_me
 
-template <> struct pl::config::Schema<my_mod::ModConfig> {
-    static constexpr std::string_view title = "My Mod Config";
+template <> struct pl::config::Schema<clange_me::ModConfig> {
+    static constexpr std::string_view title = "Clange Me Config";
     static constexpr std::string_view description = {};
 
     static constexpr FieldSchema field(std::string_view name) {
         if (name == "version")
             return {.title = "Version", .readOnly = true};
         if (name == "enabled")
-            return {.title = "Enabled", .description = "Turns the test mod behavior on or off."};
+            return {.title = "Enabled", .description = "Turns clange_me behavior on or off."};
         if (name == "message")
             return {.title = "Message", .description = "Message written when the mod is enabled."};
         return {};

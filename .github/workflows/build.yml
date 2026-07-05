@@ -26,14 +26,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build
 
-      - name: Fetch LeviLauncher preloader
-        run: |
-          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/LiteLDev/LeviLaunchroid.git LeviLaunchroid
-          echo "LEVI_PRELOADER_ROOT=$GITHUB_WORKSPACE/LeviLaunchroid/app/src/main/cpp/preloader" >> "$GITHUB_ENV"
-
       - name: Build packages
         shell: pwsh
-        run: ./scripts/package.ps1 -Abi all -PreloaderRoot "$env:LEVI_PRELOADER_ROOT"
+        run: ./scripts/package.ps1 -Abi all
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

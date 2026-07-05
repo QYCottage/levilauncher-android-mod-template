@@ -29,7 +29,7 @@ typed config generation, and GitHub Actions workflow.
 - Ninja
 - PowerShell 7+, or Windows PowerShell
 
-The CMake project fetches preloader-android release `0.2.1` from
+The CMake project fetches preloader-android release `0.2.2` from
 <https://github.com/LiteLDev/preloader-android> automatically.
 
 ## Supported SDK Surface
